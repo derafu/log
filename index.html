@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Log - PHP Logging Library</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <main>
+            <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-derafu-log---php-logging-library" href="index.html#content-derafu-log---php-logging-library" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Derafu: Log - PHP Logging Library</h1>
+<p><img src="https://img.shields.io/github/last-commit/derafu/log/main" alt="GitHub last commit" />
+<img src="https://github.com/derafu/log/actions/workflows/ci.yml/badge.svg?branch=main&amp;event=push" alt="CI Workflow" />
+<img src="https://img.shields.io/github/languages/code-size/derafu/log" alt="GitHub code size in bytes" />
+<img src="https://img.shields.io/github/issues-raw/derafu/log" alt="GitHub Issues" />
+<img src="https://poser.pugx.org/derafu/log/downloads" alt="Total Downloads" />
+<img src="https://poser.pugx.org/derafu/log/d/monthly" alt="Monthly Downloads" /></p>
+<p>A flexible, PSR-3 compliant PHP logging library that leverages Monolog and add additional features while maintaining a clean and simple API.</p>
+<h2><a id="content-features" href="index.html#content-features" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Features</h2>
+<ul>
+<li><strong>PSR-3 Compatible</strong>: Implements the PSR-3 logging interface for standardized usage.</li>
+<li><strong>In-Memory Log Storage</strong>: Store logs in memory for retrieval during runtime.</li>
+<li><strong>Caller Information</strong>: Automatically track which class, method, file, and line generated each log message.</li>
+<li><strong>Custom Formatting</strong>: Enhanced line formatter that includes caller information.</li>
+<li><strong>Multiple Log Levels</strong>: Support for all standard log levels (debug, info, notice, warning, error, critical, alert, emergency).</li>
+<li><strong>Context Support</strong>: Add structured data to your log messages.</li>
+<li><strong>Monolog Integration</strong>: Built on top of Monolog for robust logging capabilities.</li>
+</ul>
+<h2><a id="content-installation" href="index.html#content-installation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Installation</h2>
+<pre><code class="line-numbers match-braces language-bash">composer require derafu/log
+</code></pre>
+<h2><a id="content-basic-usage" href="index.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h2>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Log\Level;
+use Derafu\Log\Service\Logger;
+use Derafu\Log\Service\LogService;
+use Derafu\Log\Service\LineFormatter;
+
+// Create a logger with a line formatter.
+$logger = new Logger(
+    formatter: new LineFormatter()
+);
+
+// Create the log service.
+$logService = new LogService($logger);
+
+// Log messages with different levels.
+$logService-&gt;logger()-&gt;debug('Debug message');
+$logService-&gt;logger()-&gt;info('Info message');
+$logService-&gt;logger()-&gt;warning('Warning message', ['context' =&gt; 'value']);
+$logService-&gt;logger()-&gt;error('Error message', ['error_code' =&gt; 500]);
+
+// Retrieve all logs.
+$allLogs = $logService-&gt;logs();
+
+// Retrieve only error logs.
+$errorLogs = $logService-&gt;logs(Level::ERROR);
+
+// Retrieve logs, newest first (default).
+$newestFirst = $logService-&gt;logs(null, true);
+
+// Retrieve logs, oldest first.
+$oldestFirst = $logService-&gt;logs(null, false);
+
+// Clear logs.
+$logService-&gt;clear(); // Clear all logs.
+$logService-&gt;clear(Level::ERROR); // Clear only error logs.
+
+// Retrieve logs and clear them in one operation.
+$logs = $logService-&gt;flush();
+</code></pre>
+<h2><a id="content-caller-information" href="index.html#content-caller-information" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Caller Information</h2>
+<p>One of the key features of this library is automatic tracking of the caller information. Every log includes details about which class, method, file, and line generated the log message:</p>
+<pre><code class="line-numbers match-braces language-php">$logService-&gt;logger()-&gt;error('Something went wrong');
+
+// The log will include caller information automatically.
+$logs = $logService-&gt;logs();
+$caller = $logs[0]-&gt;getCaller();
+
+echo $caller; // Outputs: in /path/to/file.php on line 42, called by Namespace\Class::method()
+</code></pre>
+<h2><a id="content-working-with-log-records" href="index.html#content-working-with-log-records" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Working with Log Records</h2>
+<p>Each log record provides methods to access its data:</p>
+<pre><code class="line-numbers match-braces language-php">$logs = $logService-&gt;logs();
+$log = $logs[0];
+
+// Access log data.
+$level = $log-&gt;getCode();
+$message = $log-&gt;getMessage();
+$context = $log-&gt;getContext();
+$caller = $log-&gt;getCaller();
+</code></pre>
+<h2><a id="content-advanced-configuration" href="index.html#content-advanced-configuration" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Advanced Configuration</h2>
+<p>You can customize the logger with additional handlers:</p>
+<pre><code class="line-numbers match-braces language-php">use Monolog\Handler\StreamHandler;
+use Monolog\Level;
+
+// Create a logger with additional handlers.
+$logger = new Logger(
+    configuration: ['channel' =&gt; 'app'],
+    handlers: [
+        new StreamHandler('path/to/your.log', Level::Debug),
+        // Add more handlers as needed.
+    ],
+    formatter: new LineFormatter()
+);
+
+$logService = new LogService($logger);
+</code></pre>
+<h2><a id="content-contributing" href="index.html#content-contributing" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Contributing</h2>
+<p>Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.</p>
+<h2><a id="content-license" href="index.html#content-license" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>License</h2>
+<p>This package is open-sourced software licensed under the <a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://opensource.org/licenses/MIT">MIT license</a>.</p>
+</div>
+</div>
+        </main>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
+    </body>
+</html>
