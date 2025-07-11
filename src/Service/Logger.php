@@ -49,7 +49,7 @@ class Logger implements LoggerInterface
     public function __construct(
         private array $configuration = [],
         private array $handlers = [],
-        private readonly?FormatterInterface $formatter = null,
+        private readonly ?FormatterInterface $formatter = null,
     ) {
     }
 
