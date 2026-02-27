@@ -25,16 +25,16 @@
         }
     },
     "require": {
-        "php": "^8.3",
-        "monolog/monolog": "^3.8",
+        "php": "^8.5",
+        "monolog/monolog": "^3.10",
         "psr/log": "^3.0",
         "derafu/container": "dev-main"
     },
     "require-dev": {
         "ext-xdebug": "*",
-        "friendsofphp/php-cs-fixer": "^3.63",
+        "friendsofphp/php-cs-fixer": "^3.94",
         "phpstan/phpstan": "^1.12",
-        "phpunit/phpunit": "^11.4"
+        "phpunit/phpunit": "^11.5"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",
