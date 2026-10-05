@@ -12,8 +12,8 @@ declare(strict_types=1);
 
 namespace Derafu\Log;
 
-use InvalidArgumentException;
-use LogicException;
+use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Monolog\Level as MonologLevel;
 use Psr\Log\LogLevel as PsrLogLevel;
 
@@ -160,10 +160,10 @@ class Level
         }
 
         if (is_string($code)) {
-            throw new LogicException(sprintf(
-                'The log level %s is not supported.',
-                $code
-            ));
+            throw new LogicException([
+                'The log level {level} is not supported.',
+                'level' => $code,
+            ]);
         }
 
         $this->code = $code;
@@ -203,10 +203,10 @@ class Level
         $level = MonologLevel::tryFrom($this->code);
 
         if ($level === null) {
-            throw new InvalidArgumentException(sprintf(
-                'The log level code %d is invalid as a Monolog level.',
-                $this->code
-            ));
+            throw new InvalidArgumentException([
+                'The log level code {code} is invalid as a Monolog level.',
+                'code' => $this->code,
+            ]);
         }
 
         return $level;
