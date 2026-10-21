@@ -43,6 +43,12 @@ class LogServiceTest extends TestCase
 
     private LoggerInterface $logger;
 
+    /**
+     * @var array{
+     *     messages: array<int, string>,
+     *     levels: array<string, array<int, int|string>>,
+     * }
+     */
     private static array $testCases = [
         'messages' => [
             Level::DEBUG => 'Test DEBUG message.',
@@ -97,6 +103,9 @@ class LogServiceTest extends TestCase
         $this->logger = $this->logService->logger();
     }
 
+    /**
+     * @return array<string, array{int, string}>
+     */
     public static function provideStandardLevelsAndMessages(): array
     {
         $cases = [];
@@ -111,6 +120,9 @@ class LogServiceTest extends TestCase
         return $cases;
     }
 
+    /**
+     * @return array<string, array{int|string, string}>
+     */
     public static function provideCustomLevelsAndMessages(): array
     {
         $cases = [];
@@ -168,7 +180,7 @@ class LogServiceTest extends TestCase
     }
 
     #[DataProvider('provideCustomLevelsAndMessages')]
-    public function testLogWithCustomLevelAndMessage($level, $message): void
+    public function testLogWithCustomLevelAndMessage(int|string $level, string $message): void
     {
         $this->logger->log($level, $message);
 
@@ -301,6 +313,7 @@ class LogServiceTest extends TestCase
 
                 foreach ($messages as $contextCode => $message) {
                     $log = array_shift($logs);
+                    $this->assertInstanceOf(LogInterface::class, $log);
                     $this->assertSame(
                         $contextCode,
                         $log->getContext()['code'] ?? null

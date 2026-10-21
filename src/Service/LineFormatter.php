@@ -35,11 +35,10 @@ class LineFormatter extends MonologLineFormatter
         $message = parent::format($logRecord);
 
         if ($logRecord instanceof LogInterface && $logRecord->getCaller() !== null) {
-            return sprintf(
-                '%s %s.',
-                $message,
-                (string) $logRecord->getCaller(),
-            );
+            $caller = (string) $logRecord->getCaller();
+            if ($caller !== '') {
+                return sprintf('%s %s.', $message, $caller);
+            }
         }
 
         return $message;

@@ -37,7 +37,7 @@ interface LogInterface
     public function getChannel(): string;
 
     /**
-     * Returns the code of the log record.
+     * Returns the numeric severity level of the log record.
      *
      * @return int
      */
@@ -79,7 +79,14 @@ interface LogInterface
     public function getExtra(): array;
 
     /**
-     * Returns the formatted message of the log record.
+     * Returns the original result produced by the formatter.
+     *
+     * @return mixed
+     */
+    public function getFormattedRecord(): mixed;
+
+    /**
+     * Returns the formatted message of the log record as text.
      *
      * @return string|null
      */

@@ -17,6 +17,7 @@ use Derafu\Translation\Contract\TranslatableInterface;
 use InvalidArgumentException;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -27,6 +28,25 @@ use Throwable;
 #[CoversClass(Level::class)]
 final class LevelTest extends TestCase
 {
+    /** @return iterable<string, array{int, string}> */
+    public static function levelNames(): iterable
+    {
+        yield 'debug' => [Level::DEBUG, 'Debug'];
+        yield 'info' => [Level::INFO, 'Info'];
+        yield 'notice' => [Level::NOTICE, 'Notice'];
+        yield 'warning' => [Level::WARNING, 'Warning'];
+        yield 'error' => [Level::ERROR, 'Error'];
+        yield 'critical' => [Level::CRITICAL, 'Critical'];
+        yield 'alert' => [Level::ALERT, 'Alert'];
+        yield 'emergency' => [Level::EMERGENCY, 'Emergency'];
+    }
+
+    #[DataProvider('levelNames')]
+    public function testReturnsTheExpectedNameForEachSeverity(int $code, string $expected): void
+    {
+        $this->assertSame($expected, (new Level($code))->getName());
+    }
+
     public function testAStringThatIsNotALevelIsATranslatableError(): void
     {
         $exception = null;

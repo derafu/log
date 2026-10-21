@@ -12,9 +12,12 @@ declare(strict_types=1);
 
 namespace Derafu\Log\Service;
 
+use Derafu\Container\Contract\JournalInterface;
 use Derafu\Log\Contract\LoggerInterface;
+use Derafu\Log\Contract\LogInterface;
 use Derafu\Log\Contract\LogServiceInterface;
 use Derafu\Log\Level;
+use Derafu\Translation\Exception\Runtime\TranslatableUnexpectedValueException as UnexpectedValueException;
 
 /**
  * Log service.
@@ -48,7 +51,7 @@ class LogService implements LogServiceInterface
         $journal = $this->logger->getJournal();
 
         // Get all logs.
-        $records = $journal->all();
+        $records = $this->validatedRecords($journal);
         if ($level === null) {
             return $newFirst ? array_reverse($records) : $records;
         }
@@ -57,7 +60,7 @@ class LogService implements LogServiceInterface
         $level = (new Level($level))->getCode();
         $filtered = [];
         foreach ($records as $record) {
-            if ($record->level->value === $level) {
+            if ($record->getMonologLevel()->value === $level) {
                 $filtered[] = $record;
             }
         }
@@ -81,8 +84,8 @@ class LogService implements LogServiceInterface
         // Delete all logs except those of certain level (those are deleted).
         $level = (new Level($level))->getCode();
         $logs = array_filter(
-            $journal->all(),
-            fn ($log) => $log->level->value !== $level
+            $this->validatedRecords($journal),
+            fn (LogInterface $log) => $log->getMonologLevel()->value !== $level
         );
         $journal->clear();
         foreach ($logs as $logRecord) {
@@ -101,5 +104,27 @@ class LogService implements LogServiceInterface
         $this->clear($level);
 
         return $logs;
+    }
+
+    /**
+     * Reads all records before any filtering or removal takes place.
+     *
+     * @return array<array-key, LogInterface>
+     */
+    private function validatedRecords(JournalInterface $journal): array
+    {
+        $records = [];
+        foreach ($journal->all() as $key => $record) {
+            if (!$record instanceof LogInterface) {
+                throw new UnexpectedValueException([
+                    'The log journal record at key "{key}" must implement LogInterface; {type} given.',
+                    'key' => $key,
+                    'type' => get_debug_type($record),
+                ]);
+            }
+            $records[$key] = $record;
+        }
+
+        return $records;
     }
 }

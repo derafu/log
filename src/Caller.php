@@ -20,53 +20,53 @@ class Caller
     /**
      * File where the log was called.
      *
-     * @var string
+     * @var string|null
      */
-    public string $file;
+    public ?string $file;
 
     /**
      * Line of the file where the log was called.
      *
-     * @var int
+     * @var int|null
      */
-    public int $line;
+    public ?int $line;
 
     /**
      * Method that called the log.
      *
-     * @var string
+     * @var string|null
      */
-    public string $function;
+    public ?string $function;
 
     /**
      * Class of the method that called the log.
      *
-     * @var string
+     * @var string|null
      */
-    public string $class;
+    public ?string $class;
 
     /**
      * Type of call (static or object instantiated).
      *
-     * @var string
+     * @var string|null
      */
-    public string $type;
+    public ?string $type;
 
     /**
      * Constructor of the class.
      *
-     * @param string $file
-     * @param int $line
-     * @param string $function
-     * @param string $class
-     * @param string $type
+     * @param string|null $file
+     * @param int|null $line
+     * @param string|null $function
+     * @param string|null $class
+     * @param string|null $type
      */
     public function __construct(
-        string $file,
-        int $line,
-        string $function,
-        string $class,
-        string $type
+        ?string $file,
+        ?int $line,
+        ?string $function,
+        ?string $class,
+        ?string $type
     ) {
         $this->file = $file;
         $this->line = $line;
@@ -83,13 +83,20 @@ class Caller
      */
     public function __toString(): string
     {
-        return sprintf(
-            'in %s on line %d, called by %s%s%s()',
-            $this->file,
-            $this->line,
-            $this->class,
-            $this->type,
-            $this->function
-        );
+        $parts = [];
+
+        if ($this->file !== null) {
+            $location = 'in ' . $this->file;
+            if ($this->line !== null) {
+                $location .= ' on line ' . $this->line;
+            }
+            $parts[] = $location;
+        }
+
+        if ($this->function !== null) {
+            $parts[] = 'called by ' . ($this->class ?? '') . ($this->type ?? '') . $this->function . '()';
+        }
+
+        return implode(', ', $parts);
     }
 }

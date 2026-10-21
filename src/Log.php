@@ -14,6 +14,7 @@ namespace Derafu\Log;
 
 use DateTimeImmutable;
 use Derafu\Log\Contract\LogInterface;
+use Derafu\Translation\Exception\Runtime\TranslatableUnexpectedValueException as UnexpectedValueException;
 use Monolog\Level as MonologLevel;
 use Monolog\LogRecord as MonologLogRecord;
 
@@ -22,13 +23,6 @@ use Monolog\LogRecord as MonologLogRecord;
  */
 class Log extends MonologLogRecord implements LogInterface
 {
-    /**
-     * Code of the record.
-     *
-     * @var int
-     */
-    public int $code;
-
     /**
      * Who called the log.
      *
@@ -57,7 +51,7 @@ class Log extends MonologLogRecord implements LogInterface
      */
     public function getCode(): int
     {
-        return $this->code;
+        return $this->getMonologLevel()->value;
     }
 
     /**
@@ -103,9 +97,27 @@ class Log extends MonologLogRecord implements LogInterface
     /**
      * {@inheritDoc}
      */
-    public function getFormattedMessage(): ?string
+    public function getFormattedRecord(): mixed
     {
         return $this->formatted;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @throws UnexpectedValueException If the formatted record is not text or null.
+     */
+    public function getFormattedMessage(): ?string
+    {
+        $formatted = $this->getFormattedRecord();
+        if ($formatted !== null && !is_string($formatted)) {
+            throw new UnexpectedValueException([
+                'The formatted log message must be string|null; {type} given.',
+                'type' => get_debug_type($formatted),
+            ]);
+        }
+
+        return $formatted;
     }
 
     /**

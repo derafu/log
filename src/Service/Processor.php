@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\Log\Service;
 
+use Derafu\Log\Caller;
 use Derafu\Log\Log;
 use Monolog\LogRecord as MonologLogRecord;
 use Monolog\Processor\ProcessorInterface;
@@ -25,14 +26,12 @@ class Processor implements ProcessorInterface
      * Processor of the log record.
      *
      * @param MonologLogRecord $logRecord Original log record.
-     * @return MonologLogRecord Converted log record.
+     * @return Log Converted log record.
      */
     public function __invoke(MonologLogRecord $logRecord): MonologLogRecord
     {
-        // Extract caller if exists.
-        $context = $logRecord->context;
-        $caller = $context['__caller'] ?? null;
-        unset($context['__caller']);
+        // Read Derafu metadata without interpreting the consumer's context.
+        $caller = $logRecord->extra[Caller::class] ?? null;
 
         // Create instance of LogRecord.
         $log = new Log(
@@ -40,14 +39,13 @@ class Processor implements ProcessorInterface
             channel: $logRecord->channel,
             level: $logRecord->level,
             message: $logRecord->message,
-            context: $context,
+            context: $logRecord->context,
             extra: $logRecord->extra,
             formatted: $logRecord->formatted
         );
 
         // Assign additional log record data.
-        $log->code = $context['code'] ?? $logRecord->level->value;
-        $log->caller = $caller;
+        $log->caller = $caller instanceof Caller ? $caller : null;
 
         // Return the custom log record.
         return $log;

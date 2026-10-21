@@ -17,8 +17,13 @@ use Derafu\Container\Journal;
 use Derafu\Log\Caller;
 use Derafu\Log\Contract\LoggerInterface;
 use Derafu\Log\Level;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Monolog\Formatter\FormatterInterface;
+use Monolog\Handler\HandlerInterface;
+use Monolog\Level as MonologLevel;
 use Monolog\Logger as MonologLogger;
+use Monolog\LogRecord as MonologLogRecord;
+use Stringable;
 
 /**
  * Class to implement the logger service.
@@ -42,8 +47,8 @@ class Logger implements LoggerInterface
     /**
      * Constructor of the logger.
      *
-     * @param array $configuration configuration for the logger.
-     * @param array $handlers Additional handlers.
+     * @param array<array-key, mixed> $configuration Configuration for the logger.
+     * @param array<array-key, mixed> $handlers Additional handlers, each implementing HandlerInterface.
      * @param FormatterInterface|null $formatter Formatter for the logs.
      */
     public function __construct(
@@ -67,8 +72,7 @@ class Logger implements LoggerInterface
     public function log($level, $message, array $context = []): void
     {
         $level = (new Level($level))->getMonologLevel();
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->log($level, $message, $context);
+        $this->write($level, $message, $context);
     }
 
     /**
@@ -76,8 +80,7 @@ class Logger implements LoggerInterface
      */
     public function debug($message, array $context = []): void
     {
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->debug($message, $context);
+        $this->write(MonologLevel::Debug, $message, $context);
     }
 
     /**
@@ -85,8 +88,7 @@ class Logger implements LoggerInterface
      */
     public function info($message, array $context = []): void
     {
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->info($message, $context);
+        $this->write(MonologLevel::Info, $message, $context);
     }
 
     /**
@@ -94,8 +96,7 @@ class Logger implements LoggerInterface
      */
     public function notice($message, array $context = []): void
     {
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->notice($message, $context);
+        $this->write(MonologLevel::Notice, $message, $context);
     }
 
     /**
@@ -103,8 +104,7 @@ class Logger implements LoggerInterface
      */
     public function warning($message, array $context = []): void
     {
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->warning($message, $context);
+        $this->write(MonologLevel::Warning, $message, $context);
     }
 
     /**
@@ -112,8 +112,7 @@ class Logger implements LoggerInterface
      */
     public function error($message, array $context = []): void
     {
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->error($message, $context);
+        $this->write(MonologLevel::Error, $message, $context);
     }
 
     /**
@@ -121,8 +120,7 @@ class Logger implements LoggerInterface
      */
     public function critical($message, array $context = []): void
     {
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->critical($message, $context);
+        $this->write(MonologLevel::Critical, $message, $context);
     }
 
     /**
@@ -130,8 +128,7 @@ class Logger implements LoggerInterface
      */
     public function alert($message, array $context = []): void
     {
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->alert($message, $context);
+        $this->write(MonologLevel::Alert, $message, $context);
     }
 
     /**
@@ -139,21 +136,23 @@ class Logger implements LoggerInterface
      */
     public function emergency($message, array $context = []): void
     {
-        $context = $this->normalizeContext($context);
-        $this->getLogger()->emergency($message, $context);
+        $this->write(MonologLevel::Emergency, $message, $context);
     }
 
     /**
-     * Normalizes the context of the log record.
+     * Writes a record with caller metadata separate from the consumer's context.
      *
-     * @param array $context
-     * @return array
+     * @param MonologLevel $level
+     * @param string|Stringable $message
+     * @param array<array-key, mixed> $context
      */
-    private function normalizeContext(array $context): array
-    {
-        // Add the caller.
+    private function write(
+        MonologLevel $level,
+        string|Stringable $message,
+        array $context,
+    ): void {
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-        $context['__caller'] = new Caller(
+        $caller = new Caller(
             file: $trace[1]['file'] ?? null,
             line: $trace[1]['line'] ?? null,
             function: $trace[2]['function'] ?? null,
@@ -161,8 +160,18 @@ class Logger implements LoggerInterface
             type: $trace[2]['type'] ?? null
         );
 
-        // Return the normalized context.
-        return $context;
+        $logger = $this->getLogger();
+        $logger->pushProcessor(static function (MonologLogRecord $record) use ($caller): MonologLogRecord {
+            $record->extra[Caller::class] ??= $caller;
+
+            return $record;
+        });
+
+        try {
+            $logger->log($level, $message, $context);
+        } finally {
+            $logger->popProcessor();
+        }
     }
 
     /**
@@ -186,8 +195,16 @@ class Logger implements LoggerInterface
      */
     private function initialize(): void
     {
-        // Create the logger.
         $channel = $this->configuration['channel'] ?? 'derafu_lib';
+        if (!is_string($channel)) {
+            throw new InvalidArgumentException([
+                'The log channel must be a string; {type} given.',
+                'type' => get_debug_type($channel),
+            ]);
+        }
+        $handlers = $this->validatedHandlers();
+
+        // Create the logger after validating its configuration.
         $this->logger = new MonologLogger($channel);
 
         // Create the processor.
@@ -203,10 +220,31 @@ class Logger implements LoggerInterface
             $journalHandler->setFormatter($this->formatter);
         }
         $this->handlers[] = $journalHandler;
+        $handlers[] = $journalHandler;
 
         // Add the handlers.
-        foreach ($this->handlers as $handler) {
+        foreach ($handlers as $handler) {
             $this->logger->pushHandler($handler);
         }
+    }
+
+    /**
+     * @return array<array-key, HandlerInterface>
+     */
+    private function validatedHandlers(): array
+    {
+        $handlers = [];
+        foreach ($this->handlers as $key => $handler) {
+            if (!$handler instanceof HandlerInterface) {
+                throw new InvalidArgumentException([
+                    'The log handler at key "{key}" must implement HandlerInterface; {type} given.',
+                    'key' => $key,
+                    'type' => get_debug_type($handler),
+                ]);
+            }
+            $handlers[$key] = $handler;
+        }
+
+        return $handlers;
     }
 }
