@@ -154,4 +154,39 @@ final class LogConfigurationTest extends TestCase
             fclose($stream);
         }
     }
+
+    public function testJournalIsAvailableBeforeWritingAndRemainsTheSameAfterWriting(): void
+    {
+        $logger = new Logger();
+        $journal = $logger->getJournal();
+        $this->assertSame([], $journal->all());
+        $this->assertSame($journal, $logger->getJournal());
+        $logger->info('First message');
+        $this->assertSame($journal, $logger->getJournal());
+        $this->assertCount(1, $journal->all());
+    }
+
+    public function testIterableHandlersPreserveTheExistingExecutionOrder(): void
+    {
+        $stream = fopen('php://temp', 'w+');
+        $this->assertIsResource($stream);
+        try {
+            $first = new StreamHandler($stream);
+            $first->setFormatter(new LineFormatter("first:%message%\n"));
+            $second = new StreamHandler($stream);
+            $second->setFormatter(new LineFormatter("second:%message%\n"));
+            $handlers = static function () use ($first, $second): iterable {
+                yield 'first' => $first;
+                yield 'second' => $second;
+            };
+            $logger = new Logger(handlers: $handlers());
+            $logger->info('One');
+            $logger->info('Two');
+            rewind($stream);
+            $this->assertSame("second:One\nfirst:One\nsecond:Two\nfirst:Two\n", stream_get_contents($stream));
+            $this->assertCount(2, $logger->getJournal()->all());
+        } finally {
+            fclose($stream);
+        }
+    }
 }

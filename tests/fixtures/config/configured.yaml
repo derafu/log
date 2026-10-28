@@ -1,0 +1,22 @@
+imports:
+    - { resource: services.yaml }
+
+parameters:
+    derafu.log.configuration:
+        channel: integration
+
+services:
+    Monolog\Handler\StreamHandler:
+        arguments:
+            $stream: 'php://memory'
+        tags:
+            - { name: derafu_log.handler, priority: 100 }
+
+    Monolog\Handler\TestHandler:
+        tags:
+            - { name: derafu_log.handler, priority: 0 }
+
+    Monolog\Formatter\FormatterInterface:
+        class: Monolog\Formatter\LineFormatter
+        arguments:
+            $format: 'journal:%%message%%'

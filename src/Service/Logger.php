@@ -48,12 +48,12 @@ class Logger implements LoggerInterface
      * Constructor of the logger.
      *
      * @param array<array-key, mixed> $configuration Configuration for the logger.
-     * @param array<array-key, mixed> $handlers Additional handlers, each implementing HandlerInterface.
+     * @param iterable<array-key, mixed> $handlers Additional handlers, each implementing HandlerInterface.
      * @param FormatterInterface|null $formatter Formatter for the logs.
      */
     public function __construct(
         private array $configuration = [],
-        private array $handlers = [],
+        private iterable $handlers = [],
         private readonly ?FormatterInterface $formatter = null,
     ) {
     }
@@ -63,6 +63,8 @@ class Logger implements LoggerInterface
      */
     public function getJournal(): JournalInterface
     {
+        $this->getLogger();
+
         return $this->journal;
     }
 
@@ -219,7 +221,6 @@ class Logger implements LoggerInterface
         if ($this->formatter !== null) {
             $journalHandler->setFormatter($this->formatter);
         }
-        $this->handlers[] = $journalHandler;
         $handlers[] = $journalHandler;
 
         // Add the handlers.

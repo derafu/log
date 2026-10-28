@@ -1,0 +1,6 @@
+imports:
+    - { resource: services.yaml }
+
+services:
+    Psr\Log\LoggerInterface:
+        class: Psr\Log\NullLogger

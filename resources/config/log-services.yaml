@@ -3,6 +3,14 @@
 #
 #   imports:
 #       - { resource: '../vendor/derafu/log/resources/config/log-services.yaml' }
+#
+# Configure the Derafu logger without replacing the application's PSR logger.
+# Additional Monolog handlers use the derafu_log.handler tag. Monolog executes
+# the resulting stack in reverse order; the journal handler remains first.
+# An optional Monolog FormatterInterface service formats journal records only.
+
+parameters:
+    derafu.log.configuration: {}
 
 services:
 
@@ -10,6 +18,18 @@ services:
         autowire: true
         autoconfigure: true
         public: false
+
+    Derafu\Log\Contract\LoggerInterface:
+        class: Derafu\Log\Service\Logger
+        arguments:
+            $configuration: '%derafu.log.configuration%'
+            $handlers: !tagged_iterator derafu_log.handler
+            $formatter: '@?Monolog\Formatter\FormatterInterface'
+
+    Derafu\Log\Contract\LogServiceInterface:
+        class: Derafu\Log\Service\LogService
+        arguments:
+            $logger: '@Derafu\Log\Contract\LoggerInterface'
 
     # Feeds resources/translations into the consuming app's Translator (the
     # app must pass $resourceProviders: !tagged_iterator
